@@ -41,7 +41,8 @@ export function useReviewStream(): UseReviewStreamReturn {
     let overallSummary = "";
     let testSuggestions = "";
 
-    fetch("/api/review/stream", {
+    const apiBase = import.meta.env.VITE_API_URL ?? "";
+    fetch(`${apiBase}/api/review/stream`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ diff, pr_url: prUrl }),
