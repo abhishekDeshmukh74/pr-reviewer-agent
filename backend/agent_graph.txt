@@ -1,0 +1,124 @@
+
+                    PR Reviewer Agent — LangGraph Pipeline
+                    =======================================
+
+                           ┌─────────────────┐
+                           │   CLIENT INPUT  │
+                           │  diff / pr_url  │
+                           └────────┬────────┘
+                                    │
+                                    ▼
+                        ┌───────────────────────┐
+                        │    guardrail_check    │
+                        │  • non-empty diff     │
+                        │  • ≤ 3 000 lines      │
+                        └───────────┬───────────┘
+                                    │
+                          ValueError│ (422)
+                        ┌───────────┴───────────┐
+                        │      parse_diff        │
+                        │  • split by file       │
+                        │  • detect language     │
+                        │  • additions/deletions │
+                        └───────────┬───────────┘
+                                    │
+                                    ▼
+                        ┌───────────────────────┐
+                        │      review_bugs       │
+                        │  • logic errors        │
+                        │  • null/undef access   │
+                        │  • missing err handling│
+                        │  • type mismatches     │
+                        └───────────┬───────────┘
+                                    │
+                                    ▼
+                        ┌───────────────────────┐
+                        │    review_security     │
+                        │  • SQL / XSS / cmd inj │
+                        │  • auth/authz flaws    │
+                        │  • secrets in code     │
+                        │  • SSRF / path travers │
+                        └───────────┬───────────┘
+                                    │
+                                    ▼
+                        ┌───────────────────────┐
+                        │  review_performance    │
+                        │  • N+1 queries         │
+                        │  • memory leaks        │
+                        │  • blocking event loop │
+                        │  • expensive loops     │
+                        └───────────┬───────────┘
+                                    │
+                                    ▼
+                        ┌───────────────────────┐
+                        │  review_readability    │
+                        │  • unclear naming      │
+                        │  • code duplication    │
+                        │  • magic numbers       │
+                        │  • missing docs        │
+                        └───────────┬───────────┘
+                                    │
+                                    ▼
+                        ┌───────────────────────┐
+                        │     review_tests       │
+                        │  • missing coverage    │
+                        │  • untested edge cases │
+                        │  • brittle tests       │
+                        │  • missing mocks       │
+                        └───────────┬───────────┘
+                                    │
+                                    ▼
+                        ┌───────────────────────┐
+                        │    generate_patch      │
+                        │  • unified diff patch  │
+                        │  • fixes critical +    │
+                        │    warning issues only │
+                        │  • skipped if no issues│
+                        └───────────┬───────────┘
+                                    │
+                                    ▼
+                        ┌───────────────────────┐
+                        │   generate_summary     │
+                        │  • 2–3 sentence summary│
+                        │  • test suggestions    │
+                        └───────────┬───────────┘
+                                    │
+                                    ▼
+                           ┌────────────────┐
+                           │      END        │
+                           └────────────────┘
+
+
+  ─────────────────────────────────────────────────────────────────────
+  State fields flowing through the graph   (AgentState TypedDict)
+  ─────────────────────────────────────────────────────────────────────
+
+   INPUT ──────────────────────────────────────────────────────────────
+   raw_diff          str          raw unified diff text from client
+
+   INTERMEDIATE ───────────────────────────────────────────────────────
+   parsed_files      list[dict]   set by parse_diff
+   reviews           list[...]    appended by each reviewer (operator.add)
+   status            str          latest human-readable progress message
+
+   OUTPUT ─────────────────────────────────────────────────────────────
+   suggested_patch   str          unified diff patch (generate_patch)
+   overall_summary   str          prose summary       (generate_summary)
+   test_suggestions  str          test recommendations (generate_summary)
+
+
+  ─────────────────────────────────────────────────────────────────────
+  SSE events emitted to the frontend during /api/review/stream
+  ─────────────────────────────────────────────────────────────────────
+
+   event: status   {"node": "<node_name>", "message": "<status text>"}
+   event: review   {"category": "...", "issues": [...], "summary": "..."}
+   event: patch    {"patch": "<unified diff>"}
+   event: summary  {"overall_summary": "...", "test_suggestions": "..."}
+   event: done     {}
+
+
+  ─────────────────────────────────────────────────────────────────────
+  LLM — Groq  llama-3.3-70b-versatile  (OpenAI-compatible REST API)
+  Retry logic — up to 6 attempts; honours Retry-After on HTTP 429
+  ─────────────────────────────────────────────────────────────────────
