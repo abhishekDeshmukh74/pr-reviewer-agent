@@ -1,29 +1,45 @@
 # Python
 __pycache__/
 *.py[cod]
+*.pyo
+*.egg
 *.egg-info/
 dist/
 build/
 .venv/
 venv/
-*.egg
+env/
 .mypy_cache/
 .pytest_cache/
+.ruff_cache/
+.coverage
+coverage.xml
+htmlcov/
+*.log
 
 # Node
 node_modules/
 frontend/dist/
+frontend/.vite/
+*.tsbuildinfo
 
 # Environment
 .env
 .env.local
+.env.*.local
 
 # IDE
 .vscode/settings.json
 .idea/
 *.swp
 *.swo
+*.suo
+*.user
 
 # OS
 .DS_Store
 Thumbs.db
+desktop.ini
+
+# Docker
+docker-compose.override.yml
