@@ -1,3 +1,10 @@
+import { BotIcon } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import {
+  Message,
+  MessageContent,
+  MessageResponse,
+} from "@/components/ai-elements/message";
 import type { ReviewResult } from "../types";
 import { ReviewCategory } from "./ReviewCategory";
 
@@ -16,44 +23,58 @@ export function ReviewResults({ result }: ReviewResultsProps) {
   );
 
   return (
-    <div className="review-results">
-      {/* Summary section */}
+    <div className="space-y-4">
+      {/* Overall summary as assistant message */}
       {result.overall_summary && (
-        <div className="overall-summary">
-          <h2>Review Summary</h2>
-          <div className="summary-stats">
-            <span className="stat">{totalIssues} issues found</span>
+        <div className="space-y-2">
+          <div className="flex items-center gap-2 text-sm text-muted-foreground">
+            <BotIcon className="size-4" />
+            <span>Review complete</span>
+            <Badge variant="secondary">{totalIssues} issue{totalIssues !== 1 ? "s" : ""}</Badge>
             {criticalCount > 0 && (
-              <span className="stat critical">{criticalCount} critical</span>
+              <Badge variant="destructive">{criticalCount} critical</Badge>
             )}
           </div>
-          <p>{result.overall_summary}</p>
+          <Message from="assistant">
+            <MessageContent>
+              <MessageResponse>{result.overall_summary}</MessageResponse>
+            </MessageContent>
+          </Message>
         </div>
       )}
 
       {/* Category reviews */}
-      <div className="categories">
-        {result.categories.map((cat, i) => (
-          <ReviewCategory key={i} review={cat} />
-        ))}
-      </div>
+      {result.categories.length > 0 && (
+        <div className="space-y-3">
+          {result.categories.map((cat, i) => (
+            <ReviewCategory key={i} review={cat} />
+          ))}
+        </div>
+      )}
 
       {/* Suggested patch */}
       {result.suggested_patch && (
-        <div className="suggested-patch">
-          <h2>Suggested Patch</h2>
-          <pre>
-            <code>{result.suggested_patch}</code>
-          </pre>
-        </div>
+        <Message from="assistant">
+          <MessageContent>
+            <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2">
+              Suggested Patch
+            </p>
+            <pre className="text-xs overflow-x-auto font-mono bg-muted/40 p-3 rounded-md border">
+              <code>{result.suggested_patch}</code>
+            </pre>
+          </MessageContent>
+        </Message>
       )}
 
       {/* Test suggestions */}
       {result.test_suggestions && (
-        <div className="test-suggestions">
-          <h2>Test Suggestions</h2>
-          <p>{result.test_suggestions}</p>
-        </div>
+        <Message from="assistant">
+          <MessageContent>
+            <MessageResponse>
+              {`**Test Suggestions**\n\n${result.test_suggestions}`}
+            </MessageResponse>
+          </MessageContent>
+        </Message>
       )}
     </div>
   );

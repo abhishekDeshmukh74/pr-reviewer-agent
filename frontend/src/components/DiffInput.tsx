@@ -1,4 +1,15 @@
 import { useState } from "react";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import {
+  PromptInput,
+  PromptInputBody,
+  PromptInputFooter,
+  PromptInputSubmit,
+  PromptInputTextarea,
+  PromptInputTools,
+  type PromptInputMessage,
+} from "@/components/ai-elements/prompt-input";
+import { InputGroupInput } from "@/components/ui/input-group";
 
 interface DiffInputProps {
   onSubmit: (diff: string, prUrl: string) => void;
@@ -7,60 +18,55 @@ interface DiffInputProps {
 
 export function DiffInput({ onSubmit, isLoading }: DiffInputProps) {
   const [mode, setMode] = useState<"diff" | "url">("diff");
-  const [diff, setDiff] = useState("");
-  const [prUrl, setPrUrl] = useState("");
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (mode === "diff" && diff.trim()) {
-      onSubmit(diff, "");
-    } else if (mode === "url" && prUrl.trim()) {
-      onSubmit("", prUrl);
-    }
+  const handleSubmit = (message: PromptInputMessage) => {
+    const text = message.text.trim();
+    if (!text) return;
+    if (mode === "diff") onSubmit(text, "");
+    else onSubmit("", text);
   };
 
-  const canSubmit =
-    !isLoading && ((mode === "diff" && diff.trim()) || (mode === "url" && prUrl.trim()));
+  const status = isLoading ? ("streaming" as const) : undefined;
 
   return (
-    <form onSubmit={handleSubmit} className="diff-input">
-      <div className="tab-bar">
-        <button
-          type="button"
-          className={`tab ${mode === "diff" ? "active" : ""}`}
-          onClick={() => setMode("diff")}
-        >
-          Paste Diff
-        </button>
-        <button
-          type="button"
-          className={`tab ${mode === "url" ? "active" : ""}`}
-          onClick={() => setMode("url")}
-        >
-          PR URL
-        </button>
-      </div>
+    <Tabs value={mode} onValueChange={(v) => setMode(v as "diff" | "url")}>
+      <TabsList className="mb-3">
+        <TabsTrigger value="diff">Paste Diff</TabsTrigger>
+        <TabsTrigger value="url">PR URL</TabsTrigger>
+      </TabsList>
 
-      {mode === "diff" ? (
-        <textarea
-          value={diff}
-          onChange={(e) => setDiff(e.target.value)}
-          placeholder={`Paste your git diff here...\n\nExample:\ndiff --git a/file.py b/file.py\n--- a/file.py\n+++ b/file.py\n@@ -1,3 +1,4 @@\n def hello():\n-    print("hello")\n+    print("hello world")\n+    return True`}
-          rows={16}
-          spellCheck={false}
-        />
-      ) : (
-        <input
-          type="url"
-          value={prUrl}
-          onChange={(e) => setPrUrl(e.target.value)}
-          placeholder="https://github.com/owner/repo/pull/123"
-        />
-      )}
+      <TabsContent value="diff">
+        <PromptInput onSubmit={handleSubmit}>
+          <PromptInputBody>
+            <PromptInputTextarea
+              placeholder={`Paste your git diff here...\n\nExample:\ndiff --git a/file.py b/file.py`}
+              className="min-h-48 font-mono text-xs"
+              spellCheck={false}
+            />
+          </PromptInputBody>
+          <PromptInputFooter>
+            <PromptInputTools />
+            <PromptInputSubmit status={status} disabled={isLoading} />
+          </PromptInputFooter>
+        </PromptInput>
+      </TabsContent>
 
-      <button type="submit" className="btn-primary" disabled={!canSubmit}>
-        {isLoading ? "Reviewing..." : "Review"}
-      </button>
-    </form>
+      <TabsContent value="url">
+        <PromptInput onSubmit={handleSubmit}>
+          <PromptInputBody>
+            <InputGroupInput
+              name="message"
+              type="url"
+              placeholder="https://github.com/owner/repo/pull/123"
+              className="py-3"
+            />
+          </PromptInputBody>
+          <PromptInputFooter>
+            <PromptInputTools />
+            <PromptInputSubmit status={status} disabled={isLoading} />
+          </PromptInputFooter>
+        </PromptInput>
+      </TabsContent>
+    </Tabs>
   );
 }
